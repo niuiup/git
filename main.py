@@ -7,8 +7,17 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 def fetch_trending_repos():
     url = "https://api.github.com/search/repositories?q=stars:>10000&sort=stars&order=desc&per_page=5"
-    response = requests.get(url)
-    return response.json()["items"]
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    response = requests.get(url, headers=headers)
+    data = response.json()
+
+    if "items" not in data:
+        print("⚠️ Ошибка: не удалось получить репозитории. Ответ GitHub:")
+        print(data)
+        return []  # возвращаем пустой список, чтобы программа не упала
+
+    return data["items"]
+
 
 def analyze_with_gemini(description):
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + GEMINI_API_KEY
