@@ -1,4 +1,4 @@
-name: Analyze GitHub Projects
+name: "🚀 Analyze GitHub Projects"
 
 on:
   schedule:
@@ -8,19 +8,39 @@ on:
 jobs:
   analyze:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # нужно, чтобы можно было пушить обратно
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+          cache: 'pip'
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
       - name: Run analysis
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python main.py
+
+      - name: Commit and push reports
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions Bot"
+
+          git add reports/
+          if git diff --cached --quiet; then
+            echo "🟢 Нет новых файлов для коммита."
+          else
+            git commit -m "🧠 Update analysis reports [skip ci]"
+            git push
+            echo "✅ Коммит с PDF и JSON отправлен в репозиторий."
+          fi
