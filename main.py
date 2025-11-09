@@ -3,8 +3,6 @@ import json
 import requests
 from datetime import datetime
 from dotenv import load_dotenv
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
 
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -46,7 +44,6 @@ def analyze_with_gemini(description):
     r = requests.post(url, json=payload, headers=headers)
     result = r.json()
 
-    # Пытаемся извлечь текст ответа
     try:
         return result["candidates"][0]["content"]["parts"][0]["text"]
     except (KeyError, IndexError):
@@ -65,22 +62,18 @@ def save_analyzed(data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-def save_pdf(repo_name, analysis_text):
-    """Создаёт PDF-отчёт с анализом."""
+def save_markdown(repo_name, repo_url, description, analysis_text):
+    """Создаёт Markdown-файл с анализом."""
     safe_name = repo_name.replace("/", "_")
-    pdf_path = os.path.join(REPORTS_DIR, f"{safe_name}.pdf")
+    md_path = os.path.join(REPORTS_DIR, f"{safe_name}.md")
 
-    c = canvas.Canvas(pdf_path, pagesize=A4)
-    width, height = A4
-    c.setFont("Helvetica", 12)
-    c.drawString(50, height - 50, f"Анализ проекта: {repo_name}")
-    text = c.beginText(50, height - 80)
-    text.setFont("Helvetica", 10)
-    for line in analysis_text.split("\n"):
-        text.textLine(line)
-    c.drawText(text)
-    c.showPage()
-    c.save()
+    with open(md_path, "w", encoding="utf-8") as f:
+        f.write(f"# Анализ проекта: [{repo_name}]({repo_url})\n\n")
+        f.write(f"**Дата анализа:** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n")
+        f.write("## Описание проекта\n")
+        f.write(f"{description}\n\n")
+        f.write("## Анализ коммерциализации\n")
+        f.write(f"{analysis_text}\n")
 
 
 def main():
@@ -100,7 +93,7 @@ def main():
 
         print(f"🔍 Анализирую: {name}")
         analysis = analyze_with_gemini(description)
-        save_pdf(name, analysis)
+        save_markdown(name, html_url, description, analysis)
 
         analyzed.append({
             "name": name,
